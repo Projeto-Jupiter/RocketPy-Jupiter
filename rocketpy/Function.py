@@ -2024,9 +2024,26 @@ class Function:
             ans, _ = integrate.quad(self, a, b, epsabs=0.1, limit=10000)
         return ans
 
-    # Not implemented
-    def differentiate(self, x, dx=1e-6):
-        return (self.getValue(x + dx) - self.getValue(x - dx)) / (2 * dx)
-        # h = (10)**-300
-        # z = x + h*1j
-        # return self(z).imag/h
+    def differentiate(self, x, dx=1e-6, order=1):
+        """Differentiate a Function object at a given point.
+
+        Parameters
+        ----------
+        x : float
+            Point at which to differentiate.
+        dx : float
+            Step size to use for numerical differentiation.
+        order : int
+            Order of differentiation.
+
+        Returns
+        -------
+        ans : float
+            Evaluated derivative.
+        """
+        if order == 1:
+            return (self.getValue(x + dx) - self.getValue(x - dx)) / (2 * dx)
+        elif order == 2:
+            return (
+                self.getValue(x + dx) - 2 * self.getValue(x) + self.getValue(x - dx)
+            ) / dx**2
