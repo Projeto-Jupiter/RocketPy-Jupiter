@@ -335,6 +335,79 @@ class Rocket:
         # Return self
         return self
 
+    def evaluateMomentOfInertia(self):
+        """Calculates and returns the rocket's moment of inertia. The
+        moment of inertia is calculated by summing the moment of inertia
+        of the rocket without propellant and the moment of inertia of
+        the propellant. The function returns an object of the Function
+        class and is defined as a function of time.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        self.Ixx : Function
+            Function of time expressing the moment of inertia of the
+            rocket, defined as the sum of the moment of inertia of the
+            rocket without propellant and the moment of inertia of the
+            propellant.
+        self.Iyy : Function
+            See self.Ixx.
+        self.Izz : Function
+            See self.Ixx.
+        self.Ixy : Function
+            See self.Ixx.
+        self.Ixz : Function
+            See self.Ixx.
+        self.Iyz : Function
+            See self.Ixx.
+        """
+        # Get rocket's dry mass moment of inertia
+        Ixx_rocket = self.inertiaI
+        Iyy_rocket = self.inertiaI
+        Izz_rocket = self.inertiaZ
+        Ixy_rocket = 0
+        Ixz_rocket = 0
+        Iyz_rocket = 0
+
+        # Get propellant mass moment of inertia relative to its center of mass
+        Ixx_propellant = self.motor.Ixx
+        Iyy_propellant = self.motor.Iyy
+        Izz_propellant = self.motor.Izz
+        Ixy_propellant = self.motor.Ixy
+        Ixz_propellant = self.motor.Ixz
+        Iyz_propellant = self.motor.Iyz
+
+        # Calculate rocket's total moment of inertia
+        self.Ixx = Ixx_rocket + Ixx_propellant
+        self.Iyy = Iyy_rocket + Iyy_propellant
+        self.Izz = Izz_rocket + Izz_propellant
+        self.Ixy = Ixy_rocket + Ixy_propellant
+        self.Ixz = Ixz_rocket + Ixz_propellant
+        self.Iyz = Iyz_rocket + Iyz_propellant
+
+        # Retrieve propellant mass as a function of time
+        motorMass = self.motor.mass
+
+        # Retrieve constant rocket mass without propellant
+        mass = self.mass
+
+        # Calculate moment of inertia
+        self.momentOfInertia = (
+            motorMass * self.inertiaZ + mass * (self.distanceRocketPropellant**2)
+        ) / (motorMass + mass)
+        self.Ixx.setOutputs("Total Moment of Inertia (kg m^2)")
+        self.Iyy.setOutputs("Total Moment of Inertia (kg m^2)")
+        self.Izz.setOutputs("Total Moment of Inertia (kg m^2)")
+        self.Ixy.setOutputs("Total Moment of Inertia (kg m^2)")
+        self.Ixz.setOutputs("Total Moment of Inertia (kg m^2)")
+        self.Iyz.setOutputs("Total Moment of Inertia (kg m^2)")
+
+        # Return moment of inertia
+        return self.Ixx, self.Iyy, self.Izz, self.Ixy, self.Ixz, self.Iyz
+
     def addTail(self, topRadius, bottomRadius, length, distanceToCM):
         """Create a new tail or rocket diameter change, storing its
         parameters as part of the aerodynamicSurfaces list. Its
