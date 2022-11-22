@@ -18,9 +18,11 @@ class LiquidMotor(Motor):
         thrustSource,
         burnOut,
         nozzleRadius,
+        nozzlePosition,
         throatRadius,
         reshapeThrustCurve=False,
         interpolationMethod="linear",
+        coordinateSystemOrientation="nozzleToCombustionChamber",
     ):
         """Initialize Motor class, process thrust curve and geometrical
         parameters and store results.
@@ -42,6 +44,12 @@ class LiquidMotor(Motor):
         nozzleRadius : int, float, optional
             Motor's nozzle outlet radius in meters. Its value does not impact
             trajectory simulation.
+        nozzlePosition : int, float
+            Motor's nozzle outlet position in meters. More specifically, the coordinate
+            of the nozzle outlet specified in the motor's coordinate system.
+            See `Motor.coordinateSystemOrientation` for more information.
+            If 0, the origin of the motor's coordinate system is placed at the
+            motor's nozzle outlet.
         throatRadius : int, float, optional
             Motor's nozzle throat radius in meters. Its value has very low
             impact in trajectory simulation, only useful to analyze
@@ -58,14 +66,23 @@ class LiquidMotor(Motor):
             Method of interpolation to be used in case thrust curve is given
             by data set in .csv or .eng, or as an array. Options are 'spline'
             'akima' and 'linear'. Default is "linear".
+        coordinateSystemOrientation : string, optional
+            Orientation of the motor's coordinate system. The coordinate system
+            is defined by the motor's axis of symmetry. The origin of the
+            coordinate system  may be placed anywhere along such axis, such as at the
+            nozzle area, and must be kept the same for all other positions specified.
+            Options are "nozzleToCombustionChamber" and "combustionChamberToNozzle".
+            Default is "nozzleToCombustionChamber".
         """
         super().__init__(
             thrustSource,
             burnOut,
             nozzleRadius,
+            nozzlePosition,
             throatRadius,
             reshapeThrustCurve,
             interpolationMethod,
+            coordinateSystemOrientation,
         )
         self.positioned_tanks = []
 
@@ -88,7 +105,8 @@ class LiquidMotor(Motor):
     def evaluateCenterOfMass(self):
         """Evaluates the center of mass of the motor from each tank center of
         mass and positioning. The center of mass height is measured relative
-        to the motor nozzle.
+        to the motor coordinate system. See `Motor.coordinateSystemOrientation`
+        for more information.
 
         Returns
         -------
@@ -109,27 +127,29 @@ class LiquidMotor(Motor):
     def evaluateInertiaTensor(self):
         """Evaluates the principal moment of inertia of the motor from each tank
         by the parallel axis theorem. The moment of inertia is measured relative
-        to the motor center of mass with the z-axis being the motor symmetry axis
-        and the x and y axes completing the right-handed coordinate system.
+        to the motor's instantaneous center of mass with the z-axis being the
+        motor symmetry axis and the x and y axes completing the right-handed
+        coordinate system.
 
         Returns
         -------
         tuple
-            Pricipal moment of inertia tensor of the motor, in kg*m^2.
+            Components of the inertia tensor of the motor, in kg*m^2.
+            Ixx, Iyy, Izz, Ixy, Ixz, Iyz.
         """
-        inertia_x = inertia_y = inertia_z = 0
+        self.Ixx = self.Iyy = self.Izz = self.Ixy = self.Ixz = self.Iyz = 0
         centerOfMass = self.evaluateCenterOfMass()
 
         for positioned_tank in self.positioned_tanks:
             tank = positioned_tank.get("tank")
             tankPosition = positioned_tank.get("position")
-            inertia_x += (
-                tank.inertiaTensor[0]
+            self.Ixx += (
+                tank.inertia_xx
                 + tank.mass * (tankPosition + tank.centerOfMass - centerOfMass) ** 2
             )
-            inertia_y = inertia_x
+            self.Iyy = self.Ixx
 
-        return inertia_x, inertia_y, inertia_z
+        return self.Ixx, self.Iyy, self.Izz, self.Ixy, self.Ixz, self.Iyz
 
     def addTank(self, tank, position):
         """Adds a tank to the rocket motor.
@@ -139,8 +159,8 @@ class LiquidMotor(Motor):
         tank : Tank
             Tank object to be added to the rocket motor.
         position : float
-            Position of the tank relative to the motor nozzle, in meters.
-            Should be a positive value. The position is measured from the
-            nozzle tip to the tank lowest point (including caps).
+            Position of the tank relative to the motor coordinate system, in
+            meters. The position is measured to the tank lowest point (including
+            caps). See `Motor.coordinateSystemOrientation` for more information.
         """
         self.positioned_tanks.append({"tank": tank, "position": position})
