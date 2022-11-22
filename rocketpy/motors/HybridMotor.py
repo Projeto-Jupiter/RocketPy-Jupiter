@@ -19,8 +19,18 @@ class HybridMotor(Motor):
     ----------
 
         Geometrical attributes:
+        Motor.coordinateSystemOrientation : str
+            Orientation of the motor's coordinate system. The coordinate system
+            is defined by the motor's axis of symmetry. The origin of the
+            coordinate system  may be placed anywhere along such axis, such as at the
+            nozzle area, and must be kept the same for all other positions specified.
+            Options are "nozzleToCombustionChamber" and "combustionChamberToNozzle".
         Motor.nozzleRadius : float
             Radius of motor nozzle outlet in meters.
+        Motor.nozzlePosition : float
+            Motor's nozzle outlet position in meters. More specifically, the coordinate
+            of the nozzle outlet specified in the motor's coordinate system.
+            See `Motor.coordinateSystemOrientation` for more information.
         Motor.throatRadius : float
             Radius of motor nozzle throat in meters.
         Motor.grainNumber : int
@@ -117,9 +127,11 @@ class HybridMotor(Motor):
         injectorArea,
         grainSeparation=0,
         nozzleRadius=0.0335,
+        nozzlePosition=0,
         throatRadius=0.0114,
         reshapeThrustCurve=False,
         interpolationMethod="linear",
+        coordinateSystemOrientation="nozzleToCombustionChamber",
     ):
         """Initialize Motor class, process thrust curve and geometrical
         parameters and store results.
@@ -170,6 +182,12 @@ class HybridMotor(Motor):
             Motor's nozzle outlet radius in meters. Used to calculate Kn curve.
             Optional if the Kn curve is not interesting. Its value does not impact
             trajectory simulation.
+        nozzlePosition : int, float, optional
+            Motor's nozzle outlet position in meters. More specifically, the coordinate
+            of the nozzle outlet specified in the motor's coordinate system.
+            See `Motor.coordinateSystemOrientation` for more information.
+            Default is 0, in which case the origin of the motor's coordinate system
+            is placed at the motor's nozzle outlet.
         throatRadius : int, float, optional
             Motor's nozzle throat radius in meters. Its value has very low
             impact in trajectory simulation, only useful to analyze
@@ -186,6 +204,13 @@ class HybridMotor(Motor):
             Method of interpolation to be used in case thrust curve is given
             by data set in .csv or .eng, or as an array. Options are 'spline'
             'akima' and 'linear'. Default is "linear".
+        coordinateSystemOrientation : string, optional
+            Orientation of the motor's coordinate system. The coordinate system
+            is defined by the motor's axis of symmetry. The origin of the
+            coordinate system  may be placed anywhere along such axis, such as at the
+            nozzle area, and must be kept the same for all other positions specified.
+            Options are "nozzleToCombustionChamber" and "combustionChamberToNozzle".
+            Default is "nozzleToCombustionChamber".
 
         Returns
         -------
@@ -195,6 +220,7 @@ class HybridMotor(Motor):
             thrustSource,
             burnOut,
             nozzleRadius,
+            nozzlePosition,
             throatRadius,
             reshapeThrustCurve,
             interpolationMethod,
