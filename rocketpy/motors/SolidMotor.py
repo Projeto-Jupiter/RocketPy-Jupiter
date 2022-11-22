@@ -517,6 +517,12 @@ class SolidMotor(Motor):
         ) + self.mass * self.grainInnerRadius * self.burnRate
         self.inertiaZDot.setOutputs("Propellant Inertia Z Dot (kg*m2/s)")
 
+        # Stores the inertia tensor components
+        self.Ixx = self.inertiaI
+        self.Iyy = self.inertiaI
+        self.Izz = self.inertiaZ
+        self.Ixy = self.Ixz = self.Iyz = 0
+
         return [self.inertiaI, self.inertiaZ]
 
     def allInfo(self):

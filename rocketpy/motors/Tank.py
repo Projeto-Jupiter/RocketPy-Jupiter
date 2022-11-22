@@ -330,7 +330,7 @@ class Tank(ABC):
             Inertia tensor of the tank's fluids as a function of time.
         """
 
-        def inertiaTensor(t):
+        def inertia_xx(t):
             self.evaluateTankState(t)
             self.evaluateRelativeDistances(t)
 
@@ -363,15 +363,25 @@ class Tank(ABC):
 
             inertia_ixx = bottomCapInertia + cylinderInertia + upperCapInertia
 
-            return inertia_ixx, 0
+            return inertia_ixx
 
-        inertiaTensor = Function(
-            inertiaTensor,
+        self.inertia_xx = Function(
+            inertia_xx,
             inputs="Time (s)",
-            outputs="Inertia Tensor (kg m²)",
+            outputs="Inertia Tensor XX Component (kg m²)",
+        )
+        self.inertia_yy = Function(
+            inertia_xx,
+            inputs="Time (s)",
+            outputs="Inertia Tensor YY Component (kg m²)",
+        )
+        self.inertia_zz = Function(
+            0,
+            inputs="Time (s)",
+            outputs="Inertia Tensor ZZ Component (kg m²)",
         )
 
-        return inertiaTensor
+        return self.inertia_xx, self.inertia_yy, self.inertia_zz
 
 
 class MassFlowRateBasedTank(Tank):
