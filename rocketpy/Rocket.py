@@ -406,11 +406,12 @@ class Rocket:
         return self
 
     def evaluateMomentOfInertia(self):
-        """Calculates and returns the rocket's moment of inertia. The
-        moment of inertia is calculated by summing the moment of inertia
-        of the rocket without propellant and the moment of inertia of
-        the propellant. The function returns an object of the Function
-        class and is defined as a function of time.
+        """Calculates and returns the rocket's moment of inertia tensor giving
+        the rocket's coordinate system translated to have the instantaneous 
+        center of mass as the origin. The moment of inertia is calculated by
+        summing the moment of inertia of the rocket without propellant and the
+        moment of inertia of the propellant, considering the parallel axis
+        theorem.
 
         Parameters
         ----------
@@ -419,64 +420,148 @@ class Rocket:
         Returns
         -------
         self.Ixx : Function
-            Function of time expressing the moment of inertia of the
-            rocket, defined as the sum of the moment of inertia of the
-            rocket without propellant and the moment of inertia of the
-            propellant.
+            Function of time expressing the moment of inertia of the rocket
+            relative to the x axis (perpendicular to the rocket's longitudinal
+            axis of symmetry).
         self.Iyy : Function
-            See self.Ixx.
+            Function of time expressing the moment of inertia of the rocket
+            relative to the y axis (perpendicular to the rocket's longitudinal
+            axis of symmetry).
         self.Izz : Function
-            See self.Ixx.
+            Function of time expressing the moment of inertia of the rocket
+            relative to the z axis (rocket's longitudinal axis of symmetry).
         self.Ixy : Function
-            See self.Ixx.
+            Product of inertia for axes x and y.
         self.Ixz : Function
-            See self.Ixx.
+            Product of inertia for axes x and z.
         self.Iyz : Function
-            See self.Ixx.
+            Product of inertia for axes y and z.
         """
         # Get rocket's dry mass moment of inertia
-        Ixx_rocket = self.inertiaI
-        Iyy_rocket = self.inertiaI
+        Ixx_rocket = Iyy_rocket = self.inertiaI
         Izz_rocket = self.inertiaZ
-        Ixy_rocket = 0
-        Ixz_rocket = 0
-        Iyz_rocket = 0
+        Ixy_rocket = Ixz_rocket = Iyz_rocket = 0
 
         # Get propellant mass moment of inertia relative to its center of mass
-        Ixx_propellant = self.motor.Ixx
-        Iyy_propellant = self.motor.Iyy
-        Izz_propellant = self.motor.Izz
-        Ixy_propellant = self.motor.Ixy
-        Ixz_propellant = self.motor.Ixz
-        Iyz_propellant = self.motor.Iyz
+        motor = self.motor
+        Ixx_prop, Iyy_prop, Izz_prop = motor.Ixx, motor.Iyy, motor.Izz
+        Ixy_prop, Ixz_prop, Iyz_prop = motor.Ixy, motor.Ixz, motor.Iyz
 
-        # Calculate rocket's total moment of inertia
-        self.Ixx = Ixx_rocket + Ixx_propellant
-        self.Iyy = Iyy_rocket + Iyy_propellant
-        self.Izz = Izz_rocket + Izz_propellant
-        self.Ixy = Ixy_rocket + Ixy_propellant
-        self.Ixz = Ixz_rocket + Ixz_propellant
-        self.Iyz = Iyz_rocket + Iyz_propellant
+        # Get masses
+        propMass = self.motor.mass # Propellant mass as a function of time
+        dryMass = self.mass # Constant rocket dry mass without propellant
 
-        # Retrieve propellant mass as a function of time
-        motorMass = self.motor.mass
+        # Compute axes distances 
+        # TODO: check Steiner's theorem signs
+        csys = self._csys
+        dry_dz = (self.centerOfMass - self.centerOfDryMassPosition)*csys
+        dry_dx = dry_dy = 0
+        prop_dz = (self.centerOfMass - self.centerOfPropellantPosition)*csys
+        prop_dx = prop_dy = 0
 
-        # Retrieve constant rocket mass without propellant
-        mass = self.mass
+        # Construct inertia tensors (0s due to symmetry, avoid repetitive calcs)
+        dryMassInertiaTensor = np.array([
+            [Ixx_rocket, Ixy_rocket, Ixz_rocket],
+            [         0, Iyy_rocket, Iyz_rocket],
+            [         0,          0, Izz_rocket],
+        ])
+        
+        propMassInertiaTensor = np.array([
+            [Ixx_prop, Ixy_prop, Ixz_prop],
+            [       0, Iyy_prop, Iyz_prop],
+            [       0,        0, Izz_prop],
+        ])
 
-        # Calculate moment of inertia
-        self.momentOfInertia = (
-            motorMass * self.inertiaZ + mass * (self.distanceRocketPropellant**2)
-        ) / (motorMass + mass)
-        self.Ixx.setOutputs("Total Moment of Inertia (kg m^2)")
-        self.Iyy.setOutputs("Total Moment of Inertia (kg m^2)")
-        self.Izz.setOutputs("Total Moment of Inertia (kg m^2)")
-        self.Ixy.setOutputs("Total Moment of Inertia (kg m^2)")
-        self.Ixz.setOutputs("Total Moment of Inertia (kg m^2)")
-        self.Iyz.setOutputs("Total Moment of Inertia (kg m^2)")
+        # Construct Huygens operators (0s due to symmetry, avoid repetitive calcs)
+        dryMassHuygensOperator = (dry_dx**2 + dry_dy**2 + dry_dz**2) * np.eye(3)
+        dryMassHuygensOperator -= np.array([
+            [dry_dx*dry_dx, dry_dx*dry_dy, dry_dx*dry_dz],
+            [            0, dry_dy*dry_dy, dry_dy*dry_dz],
+            [            0,             0, dry_dz*dry_dz],
+        ])
+        dryMassHuygensOperator *= dryMass
+        propMassHuygensOperator = (prop_dx**2 + prop_dy**2 + prop_dz**2) * np.eye(3)
+        propMassHuygensOperator -= np.array([
+            [prop_dx*prop_dx, prop_dx*prop_dy, prop_dx*prop_dz],
+            [              0, prop_dy*prop_dy, prop_dy*prop_dz],
+            [              0,               0, prop_dz*prop_dz],
+        ])
+        propMassHuygensOperator *= propMass
+
+        # Evaluate resulting inertia tensor
+        self.inertiaTensor = dryMassInertiaTensor + dryMassHuygensOperator
+        self.inertiaTensor += propMassInertiaTensor + propMassHuygensOperator
+
+        # Deconstruct tensor into components
+        self.Ixx = self.inertiaTensor[0, 0]
+        self.Iyy = self.inertiaTensor[1, 1] 
+        self.Izz = self.inertiaTensor[2, 2] 
+        self.Ixy = self.inertiaTensor[0, 1]
+        self.Ixz = self.inertiaTensor[0, 2] 
+        self.Iyz = self.inertiaTensor[1, 2] 
 
         # Return moment of inertia
         return self.Ixx, self.Iyy, self.Izz, self.Ixy, self.Ixz, self.Iyz
+
+    def evaluateMomentOfInertiaOpt(self):
+        """Calculates and returns the rocket's moment of inertia tensor giving
+        the rocket's coordinate system translated to have the instantaneous 
+        center of mass as the origin. The moment of inertia is calculated by
+        summing the moment of inertia of the rocket without propellant and the
+        moment of inertia of the propellant, considering the parallel axis
+        theorem.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        self.Ixx : Function
+            Function of time expressing the moment of inertia of the rocket
+            relative to the x axis (perpendicular to the rocket's longitudinal
+            axis of symmetry).
+        self.Iyy : Function
+            Function of time expressing the moment of inertia of the rocket
+            relative to the y axis (perpendicular to the rocket's longitudinal
+            axis of symmetry).
+        self.Izz : Function
+            Function of time expressing the moment of inertia of the rocket
+            relative to the z axis (rocket's longitudinal axis of symmetry).
+        self.Ixy : Function
+            Product of inertia for axes x and y.
+        self.Ixz : Function
+            Product of inertia for axes x and z.
+        self.Iyz : Function
+            Product of inertia for axes y and z.
+        """
+        # Get rocket's dry mass moment of inertia
+        Ixx_rocket = Iyy_rocket = self.inertiaI
+        Izz_rocket = self.inertiaZ
+        Ixy_rocket = Ixz_rocket = Iyz_rocket = 0
+
+        # Get masses
+        propMass = self.motor.mass # Propellant mass as a function of time
+        dryMass = self.mass # Constant rocket dry mass without propellant
+
+        # Compute axes distances
+        csys = self._csys
+        dry_dz = (self.centerOfMass - self.centerOfDryMassPosition)*csys
+        prop_dz = (self.centerOfMass - self.centerOfPropellantPosition)*csys
+
+        # Deconstruct tensor into components
+        self.Ixx = Ixx_rocket + self.motor.Ixx + dryMass * dry_dz**2 + propMass * prop_dz**2
+        self.Iyy = Iyy_rocket + self.motor.Iyy + dryMass * dry_dz**2 + propMass * prop_dz**2
+        self.Izz = Izz_rocket + self.motor.Izz
+        self.Ixy = Ixy_rocket + self.motor.Ixy
+        self.Ixz = Ixz_rocket + self.motor.Ixz
+        self.Iyz = Iyz_rocket + self.motor.Iyz
+
+        # Return moment of inertia
+        return self.Ixx, self.Iyy, self.Izz, self.Ixy, self.Ixz, self.Iyz
+
+    def evaluateNozzleGyrationTensor(self):
+        pass
 
     def addMotor(self, motor, position):
         """Adds a motor to the rocket.
