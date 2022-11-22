@@ -19,12 +19,26 @@ class SolidMotor(Motor):
     ----------
 
         Geometrical attributes:
+        Motor.coordinateSystemOrientation : str
+            Orientation of the motor's coordinate system. The coordinate system
+            is defined by the motor's axis of symmetry. The origin of the
+            coordinate system  may be placed anywhere along such axis, such as at the
+            nozzle area, and must be kept the same for all other positions specified.
+            Options are "nozzleToCombustionChamber" and "combustionChamberToNozzle".
         Motor.nozzleRadius : float
             Radius of motor nozzle outlet in meters.
+        Motor.nozzlePosition : float
+            Motor's nozzle outlet position in meters. More specifically, the coordinate
+            of the nozzle outlet specified in the motor's coordinate system.
+            See `Motor.coordinateSystemOrientation` for more information.
         Motor.throatRadius : float
             Radius of motor nozzle throat in meters.
         Motor.grainNumber : int
             Number of solid grains.
+        Motor.grainsCenterOfMassPosition : float
+            Position of the center of mass of the grains in meters. More specifically,
+            the coordinate of the center of mass specified in the motor's coordinate
+            system. See `Motor.coordinateSystemOrientation` for more information.
         Motor.grainSeparation : float
             Distance between two grains in meters.
         Motor.grainDensity : float
@@ -43,6 +57,11 @@ class SolidMotor(Motor):
             Height of each grain in meters as a function of time.
 
         Mass and moment of inertia attributes:
+        Motor.centerOfMass : Function
+            Position of the center of mass in meters as a function of time. Constant for
+            solid motors, as the grains are assumed to be fixed.
+            See `Motor.coordinateSystemOrientation` for more information regarding
+            the motor's coordinate system
         Motor.grainInitialMass : float
             Initial mass of each grain in kg.
         Motor.propellantInitialMass : float
@@ -102,6 +121,7 @@ class SolidMotor(Motor):
         self,
         thrustSource,
         burnOut,
+        grainsCenterOfMassPosition,
         grainNumber,
         grainDensity,
         grainOuterRadius,
@@ -109,9 +129,11 @@ class SolidMotor(Motor):
         grainInitialHeight,
         grainSeparation=0,
         nozzleRadius=0.0335,
+        nozzlePosition=0,
         throatRadius=0.0114,
         reshapeThrustCurve=False,
         interpolationMethod="linear",
+        coordinateSystemOrientation="nozzleToCombustionChamber",
     ):
         """Initialize Motor class, process thrust curve and geometrical
         parameters and store results.
@@ -130,6 +152,10 @@ class SolidMotor(Motor):
             Function. See help(Function). Thrust units are Newtons.
         burnOut : int, float
             Motor burn out time in seconds.
+        grainsCenterOfMassPosition : float
+            Position of the center of mass of the grains in meters. More specifically,
+            the coordinate of the center of mass specified in the motor's coordinate
+            system. See `Motor.coordinateSystemOrientation` for more information.
         grainNumber : int
             Number of solid grains
         grainDensity : int, float
@@ -146,6 +172,12 @@ class SolidMotor(Motor):
             Motor's nozzle outlet radius in meters. Used to calculate Kn curve.
             Optional if the Kn curve is not interesting. Its value does not impact
             trajectory simulation.
+        nozzlePosition : int, float, optional
+            Motor's nozzle outlet position in meters. More specifically, the coordinate
+            of the nozzle outlet specified in the motor's coordinate system.
+            See `Motor.coordinateSystemOrientation` for more information.
+            Default is 0, in which case the origin of the motor's coordinate system
+            is placed at the motor's nozzle outlet.
         throatRadius : int, float, optional
             Motor's nozzle throat radius in meters. Its value has very low
             impact in trajectory simulation, only useful to analyze
@@ -162,6 +194,13 @@ class SolidMotor(Motor):
             Method of interpolation to be used in case thrust curve is given
             by data set in .csv or .eng, or as an array. Options are 'spline'
             'akima' and 'linear'. Default is "linear".
+        coordinateSystemOrientation : string, optional
+            Orientation of the motor's coordinate system. The coordinate system
+            is defined by the motor's axis of symmetry. The origin of the
+            coordinate system  may be placed anywhere along such axis, such as at the
+            nozzle area, and must be kept the same for all other positions specified.
+            Options are "nozzleToCombustionChamber" and "combustionChamberToNozzle".
+            Default is "nozzleToCombustionChamber".
 
         Returns
         -------
@@ -171,12 +210,15 @@ class SolidMotor(Motor):
             thrustSource,
             burnOut,
             nozzleRadius,
+            nozzlePosition,
             throatRadius,
             reshapeThrustCurve,
             interpolationMethod,
+            coordinateSystemOrientation,
         )
         # Define motor attributes
         # Grain parameters
+        self.grainsCenterOfMassPosition = grainsCenterOfMassPosition
         self.grainNumber = grainNumber
         self.grainSeparation = grainSeparation
         self.grainDensity = grainDensity
@@ -260,14 +302,16 @@ class SolidMotor(Motor):
 
         Returns
         -------
-        zCM : Function
-            Position of the center of mass as a function
-            of time.
+        self.centerOfMass : Function
+            Position of the center of mass as a function of time. Constant for solid
+            motors, as the grains are assumed to be fixed.
         """
 
-        self.zCM = 0
+        self.centerOfMass = Function(
+            self.grainsCenterOfMassPosition, "Time (s)", "Center of Mass (m)"
+        )
 
-        return self.zCM
+        return self.centerOfMass
 
     def evaluateGeometry(self):
         """Calculates grain inner radius and grain height as a
