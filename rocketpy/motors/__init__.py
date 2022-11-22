@@ -4,3 +4,4 @@ from .Tank import Tank, MassFlowRateBasedTank, UllageBasedTank, MassBasedTank
 from .SolidMotor import SolidMotor
 from .LiquidMotor import LiquidMotor
 from .HybridMotor import HybridMotor
+from .EmptyMotor import EmptyMotor

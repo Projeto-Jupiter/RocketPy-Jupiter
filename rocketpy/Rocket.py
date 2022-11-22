@@ -11,11 +11,11 @@ from inspect import getsourcelines
 
 import numpy as np
 
-from .Function import Function
-from .Parachute import Parachute
-from .AeroSurfaces import AeroSurfaces
-from .AeroSurfaces import NoseCone, TrapezoidalFins, EllipticalFins, Tail
-from .Motor import EmptyMotor
+from rocketpy.Function import Function
+from rocketpy.Parachute import Parachute
+from rocketpy.AeroSurfaces import AeroSurfaces
+from rocketpy.AeroSurfaces import NoseCone, TrapezoidalFins, EllipticalFins, Tail
+from rocketpy.motors import EmptyMotor
 
 
 class Rocket:
