@@ -451,8 +451,7 @@ class Rocket:
         propMass = self.motor.mass # Propellant mass as a function of time
         dryMass = self.mass # Constant rocket dry mass without propellant
 
-        # Compute axes distances 
-        # TODO: check Steiner's theorem signs
+        # Compute axes distances
         csys = self._csys
         dry_dz = (self.centerOfMass - self.centerOfDryMassPosition)*csys
         dry_dx = dry_dy = 0

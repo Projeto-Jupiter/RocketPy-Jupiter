@@ -6,11 +6,12 @@ __license__ = "MIT"
 
 from abc import ABC, abstractmethod
 import functools
+from copy import deepcopy
 
 import numpy as np
 from scipy import integrate
 
-from rocketpy.Function import Function
+from rocketpy.Function import Function, funcify_method
 from rocketpy.motors import Fluid
 from rocketpy.motors.TankGeometry import Disk, Cylinder, Hemisphere
 
@@ -312,6 +313,98 @@ class Tank(ABC):
 
         return centerOfMass
 
+    @funcify_method("Time (s)", "Inertia Tensor XX Component (kg m²)")
+    def inertiaXX(self, t):
+        """Returns the inertia tensor XX component of the tank's fluids as a
+        function of time. The inertia tensor is calculated with respect to the
+        tank's center of mass, the z-axis if aligned with the filling direction
+        and the x and y axes complete the right-handed coordinate system.
+
+        Parameters
+        ----------
+        time : float
+            Time in seconds.
+
+        Returns
+        -------
+        Function
+            Inertia tensor XX component of the tank's fluids as a function of
+            time.
+        """
+        self.evaluateTankState(t)
+        self.evaluateRelativeDistances(t)
+
+        bottomCapGasInertia = self.bottomCap.empty_inertia
+        cylinderGasInertia = self.cylinder.empty_inertia
+        upperCapGasInertia = self.upperCap.empty_inertia
+
+        bottomCapLiquidInertia = self.bottomCap.filled_inertia
+        cylinderLiquidInertia = self.cylinder.filled_inertia
+        upperCapLiquidInertia = self.upperCap.filled_inertia
+
+        bottomCapInertia = (
+            self.gas.density * bottomCapGasInertia[0]
+            + self.bottomCapGasMass * self.bottomCapRelDistGas**2
+            + self.liquid.density * bottomCapLiquidInertia[0]
+            + self.bottomCapLiquidMass * self.bottomCapRelDistLiq**2
+        )
+        cylinderInertia = (
+            self.gas.density * cylinderGasInertia[0]
+            + self.cylinderGasMass * self.cylinderRelDistGas**2
+            + self.liquid.density * cylinderLiquidInertia[0]
+            + self.cylinderLiquidMass * self.cylinderRelDistLiq**2
+        )
+        upperCapInertia = (
+            self.gas.density * upperCapGasInertia[0]
+            + self.upperCapGasMass * self.upperCapRelDistGas**2
+            + self.liquid.density * upperCapLiquidInertia[0]
+            + self.upperCapLiquidMass * self.upperCapRelDistLiq**2
+        )
+
+        inertiaXX= bottomCapInertia + cylinderInertia + upperCapInertia
+
+        return inertiaXX
+
+    @funcify_method("Time (s)", "Inertia Tensor YY Component (kg m²)")
+    def inertiaYY(self, t):
+        """Returns the inertia tensor YY component of the tank's fluids as a
+        function of time. The inertia tensor is calculated with respect to the
+        tank's center of mass, the z-axis if aligned with the filling direction
+        and the x and y axes complete the right-handed coordinate system.
+
+        Parameters
+        ----------
+        time : float
+            Time in seconds.
+
+        Returns
+        -------
+        Function
+            Inertia tensor YY component of the tank's fluids as a function of
+            time.
+        """
+        return self.inertiaXX(t)
+
+    @funcify_method("Time (s)", "Inertia Tensor ZZ Component (kg m²)")
+    def inertiaZZ(self, t):
+        """Returns the inertia tensor ZZ component of the tank's fluids as a
+        function of time. The inertia tensor is calculated with respect to the
+        tank's center of mass, the z-axis if aligned with the filling direction
+        and the x and y axes complete the right-handed coordinate system.
+
+        Parameters
+        ----------
+        time : float
+            Time in seconds.
+
+        Returns
+        -------
+        Function
+            Inertia tensor ZZ component of the tank's fluids as a function of
+            time. Assumed 0 considering inviscid fluids.
+        """
+        return 0*t
+
     @functools.cached_property
     def inertiaTensor(self):
         """Returns the inertia tensor of the tank's fluids as a function of
@@ -329,59 +422,7 @@ class Tank(ABC):
         Function
             Inertia tensor of the tank's fluids as a function of time.
         """
-
-        def inertia_xx(t):
-            self.evaluateTankState(t)
-            self.evaluateRelativeDistances(t)
-
-            bottomCapGasInertia = self.bottomCap.empty_inertia
-            cylinderGasInertia = self.cylinder.empty_inertia
-            upperCapGasInertia = self.upperCap.empty_inertia
-
-            bottomCapLiquidInertia = self.bottomCap.filled_inertia
-            cylinderLiquidInertia = self.cylinder.filled_inertia
-            upperCapLiquidInertia = self.upperCap.filled_inertia
-
-            bottomCapInertia = (
-                self.gas.density * bottomCapGasInertia[0]
-                + self.bottomCapGasMass * self.bottomCapRelDistGas**2
-                + self.liquid.density * bottomCapLiquidInertia[0]
-                + self.bottomCapLiquidMass * self.bottomCapRelDistLiq**2
-            )
-            cylinderInertia = (
-                self.gas.density * cylinderGasInertia[0]
-                + self.cylinderGasMass * self.cylinderRelDistGas**2
-                + self.liquid.density * cylinderLiquidInertia[0]
-                + self.cylinderLiquidMass * self.cylinderRelDistLiq**2
-            )
-            upperCapInertia = (
-                self.gas.density * upperCapGasInertia[0]
-                + self.upperCapGasMass * self.upperCapRelDistGas**2
-                + self.liquid.density * upperCapLiquidInertia[0]
-                + self.upperCapLiquidMass * self.upperCapRelDistLiq**2
-            )
-
-            inertia_ixx = bottomCapInertia + cylinderInertia + upperCapInertia
-
-            return inertia_ixx
-
-        self.inertia_xx = Function(
-            inertia_xx,
-            inputs="Time (s)",
-            outputs="Inertia Tensor XX Component (kg m²)",
-        )
-        self.inertia_yy = Function(
-            inertia_xx,
-            inputs="Time (s)",
-            outputs="Inertia Tensor YY Component (kg m²)",
-        )
-        self.inertia_zz = Function(
-            0,
-            inputs="Time (s)",
-            outputs="Inertia Tensor ZZ Component (kg m²)",
-        )
-
-        return self.inertia_xx, self.inertia_yy, self.inertia_zz
+        return self.inertiaXX, self.inertiaYY, self.inertiaZZ
 
 
 class MassFlowRateBasedTank(Tank):
@@ -448,8 +489,6 @@ class MassFlowRateBasedTank(Tank):
         upperCap : str
             Type of upper cap. Options are "flat" and "spherical". Default is "flat".
         """
-        super().__init__(name, diameter, height, gas, liquid, bottomCap, upperCap)
-
         self.initial_liquid_mass = initial_liquid_mass
         self.initial_gas_mass = initial_gas_mass
         self.burn_out_time = burn_out_time
@@ -485,6 +524,7 @@ class MassFlowRateBasedTank(Tank):
             "linear",
             "zero",
         )
+        super().__init__(name, diameter, height, gas, liquid, bottomCap, upperCap)
 
     @functools.cached_property
     def netMassFlowRate(self):
@@ -650,8 +690,8 @@ class UllageBasedTank(Tank):
             Type of upper cap. Options are "flat" and "spherical".
             Default is "flat".
         """
-        super().__init__(name, diameter, height, gas, liquid, bottomCap, upperCap)
         self.ullage = ullage
+        super().__init__(name, diameter, height, gas, liquid, bottomCap, upperCap)
 
     @functools.cached_property
     def gasVolume(self):

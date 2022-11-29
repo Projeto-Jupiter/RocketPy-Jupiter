@@ -7,6 +7,7 @@ __license__ = "MIT"
 
 from rocketpy.motors import Motor
 
+from rocketpy.Function import funcify_method
 
 class LiquidMotor(Motor):
     """Class to specify characteristics and useful operations for Liquid
@@ -86,6 +87,11 @@ class LiquidMotor(Motor):
         )
         self.positioned_tanks = []
 
+    @funcify_method("Time (s)", "Mass (kg)")
+    def mass(self, t):
+        print()
+        return self.massFlowRate.integral(0, t, numerical=True)
+
     def evaluateMassFlowRate(self):
         """Evaluates the mass flow rate of the motor as the sum of each tank
         mass flow rate.
@@ -95,12 +101,18 @@ class LiquidMotor(Motor):
         float
             Mass flow rate of the motor, in kg/s.
         """
-        massFlowRate = 0
+        self.massFlowRate = 0
 
         for positioned_tank in self.positioned_tanks:
-            massFlowRate += positioned_tank.get("tank").netMassFlowRate
+            self.massFlowRate += positioned_tank.get("tank").netMassFlowRate
 
-        return massFlowRate
+        return self.massFlowRate
+
+    def evaluateMassDot(self):
+        return self.evaluateMassFlowRate()
+
+    def exhaustVelocity(self):
+        return self.thrust/self.massFlowRate
 
     def evaluateCenterOfMass(self):
         """Evaluates the center of mass of the motor from each tank center of
@@ -122,9 +134,11 @@ class LiquidMotor(Motor):
             totalMass += tank.mass
             massBalance += tank.mass * (tankPosition + tank.centerOfMass)
 
-        return massBalance / totalMass
+        self.centerOfMass = massBalance / totalMass
 
-    def evaluateInertiaTensor(self):
+        return self.centerOfMass
+
+    def evaluateInertia(self):
         """Evaluates the principal moment of inertia of the motor from each tank
         by the parallel axis theorem. The moment of inertia is measured relative
         to the motor's instantaneous center of mass with the z-axis being the
@@ -144,7 +158,7 @@ class LiquidMotor(Motor):
             tank = positioned_tank.get("tank")
             tankPosition = positioned_tank.get("position")
             self.Ixx += (
-                tank.inertia_xx
+                tank.inertiaXX
                 + tank.mass * (tankPosition + tank.centerOfMass - centerOfMass) ** 2
             )
             self.Iyy = self.Ixx
@@ -164,3 +178,6 @@ class LiquidMotor(Motor):
             caps). See `Motor.coordinateSystemOrientation` for more information.
         """
         self.positioned_tanks.append({"tank": tank, "position": position})
+        self.evaluateCenterOfMass()
+        self.evaluateInertia()
+        

@@ -1600,7 +1600,7 @@ class Flight:
         )  # TODO: Make sure value is negative
         S_noz_zz = self.rocket.motor.nozzleRadius**2
         S_noz_xx = 0.5 * S_noz_zz
-        S_noz_yy = S_noz_yy
+        S_noz_yy = S_noz_xx
         S_noz_xy = 0
         S_noz_yz = 0
         S_noz_zx = 0
