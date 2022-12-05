@@ -227,15 +227,15 @@ class Motor(ABC):
         self.throatRadius = throatRadius
 
         # Other quantities that will be computed
-        self.massDot = None
-        self.mass = None
-        self.inertiaI = None
-        self.inertiaIDot = None
-        self.inertiaZ = None
-        self.inertiaZDot = None
-        self.maxThrust = None
-        self.maxThrustTime = None
-        self.averageThrust = None
+        # self.massDot = None
+        # self.mass = None
+        # self.inertiaI = None
+        # self.inertiaIDot = None
+        # self.inertiaZ = None
+        # self.inertiaZDot = None
+        # self.maxThrust = None
+        # self.maxThrustTime = None
+        # self.averageThrust = None
 
         # Compute quantities
         # Thrust information - maximum and average

@@ -2264,7 +2264,7 @@ class Flight:
 
     # Energy
     # Kinetic Energy
-    @funcify_method("Time (s)", "Rotational Kinetic Energy (J)", "spline", "zero")
+    @funcify_method("Time (s)", "Rotational Kinetic Energy (J)")
     def rotationalEnergy(self):
         # b = -self.rocket.distanceRocketPropellant
         b = (
@@ -2284,6 +2284,7 @@ class Flight:
         rotationalEnergy = 0.5 * (
             I1 * self.w1**2 + I2 * self.w2**2 + I3 * self.w3**2
         )
+        rotationalEnergy.setDiscreteBasedOnModel(self.w1)
         return rotationalEnergy
 
     @funcify_method("Time (s)", "Translational Kinetic Energy (J)", "spline", "zero")
@@ -2969,26 +2970,26 @@ class Flight:
                 self.maxAcceleration / self.env.g, self.maxAccelerationTime
             )
         )
-        print(
-            "Maximum Upper Rail Button Normal Force: {:.3f} N".format(
-                self.maxRailButton1NormalForce
-            )
-        )
-        print(
-            "Maximum Upper Rail Button Shear Force: {:.3f} N".format(
-                self.maxRailButton1ShearForce
-            )
-        )
-        print(
-            "Maximum Lower Rail Button Normal Force: {:.3f} N".format(
-                self.maxRailButton2NormalForce
-            )
-        )
-        print(
-            "Maximum Lower Rail Button Shear Force: {:.3f} N".format(
-                self.maxRailButton2ShearForce
-            )
-        )
+        # print(
+        #     "Maximum Upper Rail Button Normal Force: {:.3f} N".format(
+        #         self.maxRailButton1NormalForce
+        #     )
+        # )
+        # print(
+        #     "Maximum Upper Rail Button Shear Force: {:.3f} N".format(
+        #         self.maxRailButton1ShearForce
+        #     )
+        # )
+        # print(
+        #     "Maximum Lower Rail Button Normal Force: {:.3f} N".format(
+        #         self.maxRailButton2NormalForce
+        #     )
+        # )
+        # print(
+        #     "Maximum Lower Rail Button Shear Force: {:.3f} N".format(
+        #         self.maxRailButton2ShearForce
+        #     )
+        # )
 
         return None
 

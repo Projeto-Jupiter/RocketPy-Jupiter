@@ -7,7 +7,8 @@ __license__ = "MIT"
 
 from rocketpy.motors import Motor
 
-from rocketpy.Function import funcify_method
+from rocketpy.Function import Function, funcify_method
+
 
 class LiquidMotor(Motor):
     """Class to specify characteristics and useful operations for Liquid
@@ -86,11 +87,16 @@ class LiquidMotor(Motor):
             coordinateSystemOrientation,
         )
         self.positioned_tanks = []
+        self.evaluateMassFlowRate()
 
     @funcify_method("Time (s)", "Mass (kg)")
-    def mass(self, t):
-        print()
-        return self.massFlowRate.integral(0, t, numerical=True)
+    def mass(self):
+        # return -self.massFlowRate.integral(0, t, numerical=True)
+        mass = Function(0)
+        for positioned_tank in self.positioned_tanks:
+            mass += positioned_tank.get("tank").gasMass
+            mass += positioned_tank.get("tank").liquidMass
+        return mass
 
     def evaluateMassFlowRate(self):
         """Evaluates the mass flow rate of the motor as the sum of each tank
@@ -106,13 +112,16 @@ class LiquidMotor(Motor):
         for positioned_tank in self.positioned_tanks:
             self.massFlowRate += positioned_tank.get("tank").netMassFlowRate
 
+        # TODO: Remove this when the Flight class implementation is done
+        self.massDot = self.massFlowRate
+
         return self.massFlowRate
 
     def evaluateMassDot(self):
         return self.evaluateMassFlowRate()
 
     def exhaustVelocity(self):
-        return self.thrust/self.massFlowRate
+        return self.thrust / self.massFlowRate
 
     def evaluateCenterOfMass(self):
         """Evaluates the center of mass of the motor from each tank center of
@@ -151,7 +160,7 @@ class LiquidMotor(Motor):
             Components of the inertia tensor of the motor, in kg*m^2.
             Ixx, Iyy, Izz, Ixy, Ixz, Iyz.
         """
-        self.Ixx = self.Iyy = self.Izz = self.Ixy = self.Ixz = self.Iyz = 0
+        self.Ixx = self.Iyy = self.Izz = self.Ixy = self.Ixz = self.Iyz = Function(0)
         centerOfMass = self.evaluateCenterOfMass()
 
         for positioned_tank in self.positioned_tanks:
@@ -162,6 +171,12 @@ class LiquidMotor(Motor):
                 + tank.mass * (tankPosition + tank.centerOfMass - centerOfMass) ** 2
             )
             self.Iyy = self.Ixx
+
+        # TODO: remove this when the Flight class implementation is done
+        self.inertiaZ = self.Izz
+        self.inertiaI = self.Ixx
+        self.inertiaZDot = Function(lambda t: self.inertiaZ.differentiate(t))
+        self.inertiaIDot = Function(lambda t: self.inertiaI.differentiate(t))
 
         return self.Ixx, self.Iyy, self.Izz, self.Ixy, self.Ixz, self.Iyz
 
@@ -178,6 +193,6 @@ class LiquidMotor(Motor):
             caps). See `Motor.coordinateSystemOrientation` for more information.
         """
         self.positioned_tanks.append({"tank": tank, "position": position})
+        self.evaluateMassFlowRate()
         self.evaluateCenterOfMass()
         self.evaluateInertia()
-        
