@@ -1,7 +1,9 @@
+import cmath
+
 import numpy as np
 from copy import copy
-from scipy.optimize import fsolve
 
+from rocketpy.tools import find_roots_cubic_polynomial
 
 class TankGeometry:
     """Class to evaluate mathematical and geometrical properties of a tank
@@ -492,14 +494,23 @@ class Hemisphere(TankGeometry):
 
     def volume_to_height(self, volume):
         if self.fill_direction == "downwards":
-            height = (
-                lambda height: volume
-                - np.pi * height * (3 * self.radius**2 - height**2) / 3
-            )
+            # ax**3 + bx**2 + cx + d
+            # lambda height: volume - pi * height * (3 * radius**2 - height**2) / 3
+            a = np.pi / 3
+            b = 0
+            c = -np.pi * self.radius**2
+            d = volume
         else:
-            height = (
-                lambda height: volume
-                - np.pi * height**2 * (3 * self.radius - height) / 3
-            )
-
-        return fsolve(height, np.array([self.radius / 2]))[0]
+            # ax**3 + bx**2 + cx + d
+            # lambda height: volume - pi * height**2 * (3 * radius - height) / 3
+            a = np.pi / 3
+            b = -np.pi * self.radius
+            c = 0
+            d = volume
+        roots = find_roots_cubic_polynomial(a, b, c, d)
+        # Find the real root that is positive and smaller than the radius
+        root = 0
+        for r in roots:
+            if 0 < r.real < self.radius and abs(r.imag) < 1e-10:
+                root = r.real
+        return root
