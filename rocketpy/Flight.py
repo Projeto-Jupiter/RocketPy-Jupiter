@@ -2705,8 +2705,8 @@ class Flight:
                 self.maxRailButton2ShearForce
             )
         )
-        if self.impactVelocity >= 15:
-            warnings.warn("CAUTION! Your rocket velocity of impact is very high!")
+        if self.impactVelocity <= -15:
+            warnings.warn("CAUTION! Your rocket impact velocity is higher than 15 m/s!")
         return None
 
     def printInitialConditionsData(self):
