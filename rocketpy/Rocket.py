@@ -1003,3 +1003,51 @@ class Rocket:
 
     # Variables
     railButtonPair = namedtuple("railButtonPair", "distanceToCM angularPosition")
+    def checkRocket(self):
+        #Reseting the warnings 
+        warnings.resetwarnings()
+        print("Your rocket has:")
+        #Function for printing specific info
+        def printinfo(self,item):
+            dict = {
+                "Name" : item.name,
+                "Distance to CM(m)" : item.distanceToCM,
+            }
+            if item.name == "Fins":
+                dict["Type"] = item.__class__.__name__
+                dict["N° of fins"] = item.n
+                dict["Airfoil"] = item.airfoil
+            elif item.name == "Nose Cone":
+                dict["Kind"] = item.kind
+                dict["Length(m)"] = item.length
+            else: 
+                None
+            print(dict)
+
+        #Actually printing
+        for item in self.aerodynamicSurfaces:
+            printinfo(self,item)
+
+        #Checking for repeated features
+        for item in self.aerodynamicSurfaces:
+
+            #Fixing the plural
+            if item.name == "Fins":
+                s  = "!"
+            else:   
+                s = "s!"
+            
+            if sum(isinstance(x,item.__class__) for x in self.aerodynamicSurfaces) > 1:
+                string = "CAUTION! Your rocket has " + str(sum(isinstance(x,item.__class__) for x in self.aerodynamicSurfaces)) + " " + str(item.name) + s
+                warnings.warn(string)
+        
+        #Checking static margin:
+        if self.staticMargin[0][1] < 2:
+            self.staticMargin()
+            warnings.warn("CAUTION! Your rocket is hypo-stable, this may cause trejctory anomalies!")
+        elif self.staticMargin[0][1] > 2.6:
+            self.staticMargin()
+            warnings.warn("CAUTION! Your rocket is hyper-stable, this may cause trejctory anomalies!")
+        if self.parachutes == []:
+            warnings.warn("CAUTION! Your rocket has no parachute!")
+        return None
