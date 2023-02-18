@@ -81,17 +81,9 @@ class Function:
             self.setTitle(title)
         else:
             if self.__domDim__ == 1:
-                self.setTitle(
-                    self.__outputs__[0].title() + " x " + self.__inputs__[0].title()
-                )
+                self.title = self.__outputs__[0].title() + " x " + self.__inputs__[0].title()
             elif self.__domDim__ == 2:
-                self.setTitle(
-                    self.__outputs__[0].title()
-                    + " x "
-                    + self.__inputs__[0].title()
-                    + " x "
-                    + self.__inputs__[1].title()
-                )
+                self.title = self.__outputs__[0].title() + " x " + self.__inputs__[0].title() + " x " + self.__inputs__[1].title()
         # Return
         return None
 
@@ -1207,9 +1199,6 @@ class Function:
             + ")"
         )
 
-    def setTitle(self, title):
-        self.title = title
-
     def plot(self, *args, **kwargs):
         """Call Function.plot1D if Function is 1-Dimensional or call
         Function.plot2D if Function is 2-Dimensional and forward arguments
@@ -1236,8 +1225,9 @@ class Function:
     ):
         """Plot 1-Dimensional Function, from a lower limit to an upper limit,
         by sampling the Function several times in the interval. The title of
-        the graph is given by the name of the axes, which are taken from
-        the Function`s input and output names.
+        the graph may be set by changing the function's atribute title, 
+        otherwise it will be given by the name of the axes, which are taken from
+        the Function's input and output names.
 
         Parameters
         ----------
@@ -1315,8 +1305,9 @@ class Function:
     ):
         """Plot 2-Dimensional Function, from a lower limit to an upper limit,
         by sampling the Function several times in the interval. The title of
-        the graph is given by the name of the axis, which are taken from
-        the Function`s inputs and output names.
+        the graph may be set by changing the function's atribute title, 
+        otherwise it will be given by the name of the axes, which are taken from
+        the Function's input and output names.
 
         Parameters
         ----------
