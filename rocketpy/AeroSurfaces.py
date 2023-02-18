@@ -382,13 +382,13 @@ class Fins(ABC):
         else:
             # Defines clalpha2D as the derivative of the
             # lift coefficient curve for a specific airfoil
-            airfoilCl = Function(
+            self.airfoilCl = Function(
                 self.airfoil[0],
                 interpolation="linear",
             )
 
             # Differentiating at x = 0 to get cl_alpha
-            clalpha2D_Mach0 = airfoilCl.differentiate(x=1e-3, dx=1e-3)
+            clalpha2D_Mach0 = self.airfoilCl.differentiate(x=1e-3, dx=1e-3)
 
             # Convert to radians if needed
             if self.airfoil[1] == "degrees":
@@ -640,17 +640,24 @@ class Fins(ABC):
 
         return None
 
-    def airfoilPlots(self):
+    def airfoilInfo(self):
+        """Prints out airfoil related information of the
+        fin set.
 
+        Parameters
+        ----------
+        None
+
+        Return
+        ------
+        None
+        """
         if self.airfoil is not None:
-            airfoilCl = Function(
-                self.airfoil[0],
-                inputs="angle of attack",
-                outputs="lift coefficient",
-                interpolation="linear",
-                extrapolation=None,
-            )
-            airfoilCl.plot1D()
+            print("\n\nAerodynamic Information\n")
+            print("Airfoil's Lift Curve as a Function of Alpha ({}))".format(self.airfoil[1]))
+            self.airfoilCl.plot1D()
+        
+        return None
 
     def allInfo(self):
         """Prints out all data and graphs available about the Rocket.
@@ -676,7 +683,7 @@ class Fins(ABC):
         self.geometricalInfo()
         self.aerodynamicInfo()
         self.rollInfo()
-        self.airfoilPlots()
+        self.airfoilInfo()
 
         return None
 
